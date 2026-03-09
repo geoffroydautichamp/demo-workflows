@@ -17,64 +17,60 @@ class OCRWorkflowInput(BaseModel):
     document_url: str
 
 
-async def main() -> None:
-    """Run the OCR workflow on the sample dental invoice."""
-    client = WorkflowsClient(
-        base_url=os.environ["SERVER_URL"],
-        api_key=os.environ["MISTRAL_API_KEY"],
-    )
-
-    invoices_folder = "invoices"
-        # "https://kltmfijkwchheensxrkw.supabase.co/storage/v1/object/public/github/facture_stylo.pdf"
-        # "https://raw.githubusercontent.com/natashaklingenbrunn/insurance-workflow-demp/main/Facture%20Dentiste%20Sophie%20Martin.pdf"
-        # "https://kltmfijkwchheensxrkw.supabase.co/storage/v1/object/public/github/facture.pdf"
-
+async def run_single(client: WorkflowsClient, invoice_id: int) -> None:
+    """Run the OCR workflow on a single invoice."""
+    invoices_url = "https://raw.githubusercontent.com/geoffroydautichamp/demo-workflows/master/invoices/batch1-{id}.jpg"
+    document_url = invoices_url.format(id=invoice_id)
     execution_id = uuid.uuid4().hex
 
-    print("=" * 70)
-    print("OCR INVOICE WORKFLOW")
-    print("=" * 70)
-    print(f"\nDocument: {document_url}")
-    print(f"Execution ID: {execution_id}\n")
+    print(f"[{invoice_id}] Starting workflow for {document_url}")
+    print(f"[{invoice_id}] Execution ID: {execution_id}")
 
-    # Version with Temporal server
-    # Start the workflow (don't wait - it may need human approval)
     await client.execute_workflow(
         workflow_identifier="ocr_invoice_workflow_test",
         input_data=OCRWorkflowInput(document_url=document_url),
         execution_id=execution_id,
     )
 
-    print("Workflow started. Waiting for completion...")
-    print("(If amount >= 100 EUR, human approval is required)")
-    print(f"\nTo approve: uv run python workflows/ocr/approve.py {execution_id}\n")
+    print(f"[{invoice_id}] Workflow started. Waiting for completion...")
+    print(f"[{invoice_id}] To approve: uv run python workflows/ocr/approve.py {execution_id}")
 
-    # Wait for completion
     response = await client.wait_for_workflow_completion(execution_id)
     result = response.result
 
-    print("Workflow completed!")
     print("=" * 70)
+    print(f"[{invoice_id}] Workflow completed!")
 
     if isinstance(result, dict):
         decision = result.get("decision", "unknown")
         total_amount = result.get("total_amount", 0)
         required_approval = result.get("required_human_approval", False)
 
-        print(f"\nDECISION: {decision}")
-        print(f"Total Amount: {total_amount} EUR")
-        print(f"Threshold: 100 EUR")
-        print(f"Required Human Approval: {required_approval}")
+        print(f"[{invoice_id}] DECISION: {decision}")
+        print(f"[{invoice_id}] Total Amount: {total_amount} EUR")
+        print(f"[{invoice_id}] Required Human Approval: {required_approval}")
         print("-" * 70)
 
-        print("\nEXTRACTED DATA:")
-        print("-" * 70)
+        print(f"[{invoice_id}] EXTRACTED DATA:")
         extracted = result.get("extracted_data", result)
         print(json.dumps(extracted, indent=2, ensure_ascii=False))
     else:
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
     print("=" * 70)
+
+
+async def main() -> None:
+    """Run OCR workflows on all invoices in parallel."""
+    client = WorkflowsClient(
+        base_url=os.environ["SERVER_URL"],
+        api_key=os.environ["MISTRAL_API_KEY"],
+    )
+
+    invoice_ids = range(1472, 1490)
+    print(f"Launching {len(invoice_ids)} workflows in parallel...\n")
+
+    await asyncio.gather(*(run_single(client, id) for id in invoice_ids))
 
 
 if __name__ == "__main__":

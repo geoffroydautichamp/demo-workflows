@@ -1,5 +1,5 @@
 import asyncio
-from worker import download_pdf, process_document_ocr, extract_invoice_data
+from worker import download_pdf, process_document_ocr, extract_invoice_data, DocumentInput
 
 document_url = "https://kltmfijkwchheensxrkw.supabase.co/storage/v1/object/public/github/facture_stylo.pdf"
 
@@ -10,7 +10,7 @@ async def main():
     print(f"Downloaded PDF with {len(pdf_bytes)} bytes")
 
     # Process the document with OCR
-    ocr_result = await process_document_ocr(document_url)
+    ocr_result = await process_document_ocr(DocumentInput(document_url=document_url))
     invoice_data = await extract_invoice_data(ocr_result)
     print("OCR Processing Complete!")
     print("Extracted Data:", ocr_result.extracted_data)

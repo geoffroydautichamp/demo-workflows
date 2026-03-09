@@ -40,6 +40,11 @@ THRESHOLD = 100.0
 
 # Data Models
 
+class DocumentInput(pydantic.BaseModel):
+    """Input document URL for OCR processing."""
+    document_url: str
+
+
 class OCRResponse(pydantic.BaseModel):
     """Extracted invoice data and raw text."""
     raw_text: str
@@ -80,8 +85,10 @@ async def download_pdf(url: str) -> bytes:
 
 
 @workflows.activity()
-async def process_document_ocr(document_url: str) -> OCRResponse:
+async def process_document_ocr(doc: DocumentInput) -> OCRResponse:
     """Extract structured data from a PDF document using Mistral OCR."""
+
+    document_url = doc.document_url
 
     # Get activity execution info
     info = activity.info()
@@ -143,37 +150,16 @@ async def extract_invoice_data(ocr_result: OCRResponse) -> InvoiceData:
     ]
 
     try:
-        response = await client.beta.conversations.start(
+        response = client.beta.conversations.start(
             agent_id="ag_019cd2ebee8c74ae8e579c98a1dff863",
             inputs=inputs,
         )
+        print(response)
 
-        invoice_data = response.choices[0].message.parsed
+        raw_content = response.outputs[0].content
+        invoice_data = InvoiceData.model_validate_json(raw_content)
 
-    # try:
-    #     # Get the parsed response from the LLM
-    #     response = await client.chat.parse_async(
-    #         model="mistral-medium-latest",
-    #         messages=[
-    #             {
-    #                 "role": "system",
-    #                 "content": "You are an invoice data extraction agent. Extract structured information from invoice text."
-    #             },
-    #             {
-    #                 "role": "user",
-    #                 "content": prompt.format(raw_text=ocr_result.raw_text)
-    #             },
-    #         ],
-    #         response_format=InvoiceData,
-    #         max_tokens=512,
-    #         temperature=0
-    #     )
-
-    #     # Extract the InvoiceData object from the response
-    #     # The parsed data is in response.choices[0].parsed
-    #     invoice_data = response.choices[0].message.parsed
-
-    #     print("Extracted invoice data:", invoice_data)
+        print("Extracted invoice data:", invoice_data)
         return invoice_data
 
     except Exception as e:
@@ -220,12 +206,11 @@ class OCRDocumentWorkflow:
         )
 
         # Step 1: Extract raw text from document
-        ocr_result = await process_document_ocr(document_url)
+        ocr_result = await process_document_ocr(DocumentInput(document_url=document_url))
         print("Raw text extracted:", ocr_result.raw_text[:200] + "...")  # Print first 200 chars
 
         # Step 2: Extract structured invoice data using LLM
         invoice_data = await extract_invoice_data(ocr_result)
-        print(f"Structured output result:{invoice_data}")
 
         # Step 3: Check if human approval is needed (e.g., amount > 100)
         requires_approval = invoice_data.total_amount > 100

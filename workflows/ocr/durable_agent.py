@@ -3,6 +3,7 @@
 import asyncio
 
 from dotenv import load_dotenv
+import os
 
 # load_dotenv must run before importing mistralai_workflows,
 # because the config is read from env vars at import time.
@@ -11,12 +12,15 @@ load_dotenv()
 import mistralai  # noqa: E402
 import mistralai_workflows as workflows  # noqa: E402
 import mistralai_workflows.plugins.mistralai as workflows_mistralai  # noqa: E402
+import mistralai_workflows.plugins.mistralai.activities  # noqa: E402, F401 - registers plugin activities on the worker
 import mistralai_workflows.core.encoding.payload_encoder as payload_encoder  # noqa: E402
 import mistralai_workflows.core.temporal.payload_codec as payload_codec  # noqa: E402
 import mistralai_workflows.core.temporal.payload_converter as payload_converter  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from worker import process_document_ocr, extract_invoice_data  # noqa: E402
+
+api_key = os.environ.get("MISTRAL_API_KEY")
 
 # Encoding format compatibility patch
 NEW_ENCODING = "json/wf_v1"
@@ -53,6 +57,7 @@ class OCRDurableAgent:
                 "3. Return a summary of the extracted invoice data."
             ),
             tools=[process_document_ocr, extract_invoice_data],
+            completion_args=mistralai.CompletionArgs(tool_choice="auto"),
         )
 
         outputs = await workflows_mistralai.Runner.run(
@@ -70,19 +75,11 @@ class OCRDurableAgent:
 
 
 async def main() -> None:
-    result = await workflows.execute_workflow(
-        OCRDurableAgent,
-        params=PdfDoc(document_url=document_url),
+    # Run the worker — config discovery fetches Temporal settings from the Mistral API
+    await workflows.run_worker(
+        workflows=[OCRDurableAgent],
+        api_key=api_key,
     )
-
-    print("=" * 70)
-    print("OCR DURABLE AGENT RESULT")
-    print("=" * 70)
-    if isinstance(result, dict):
-        print(result.get("answer", result))
-    else:
-        print(result)
-    print("=" * 70)
 
 
 if __name__ == "__main__":

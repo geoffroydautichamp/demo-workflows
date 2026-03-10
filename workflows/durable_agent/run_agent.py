@@ -1,12 +1,16 @@
-
 import asyncio
 import json
 import os
+import sys
 import uuid
+from pathlib import Path
+
+# Add project root to sys.path for cross-folder imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dotenv import load_dotenv
 from mistralai_workflows import WorkflowsClient
-from run import OCRWorkflowInput
+from workflows.workflow.run import OCRWorkflowInput
 
 load_dotenv()
 

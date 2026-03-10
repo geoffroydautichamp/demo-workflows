@@ -33,7 +33,7 @@ async def run_single(client: WorkflowsClient, invoice_id: int) -> None:
     )
 
     print(f"[{invoice_id}] Workflow started. Waiting for completion...")
-    print(f"[{invoice_id}] To approve: uv run python workflows/ocr/approve.py {execution_id}")
+    print(f"[{invoice_id}] To approve: uv run python workflows/utils/approve.py {execution_id}")
 
     response = await client.wait_for_workflow_completion(execution_id)
     result = response.result

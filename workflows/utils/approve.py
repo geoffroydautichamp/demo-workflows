@@ -35,7 +35,7 @@ async def send_approval(execution_id: str, approved: bool = True) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: uv run python workflows/ocr/approve.py <execution_id> [--reject]")
+        print("Usage: uv run python workflows/utils/approve.py <execution_id> [--reject]")
         sys.exit(1)
 
     exec_id = sys.argv[1]

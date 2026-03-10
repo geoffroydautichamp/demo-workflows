@@ -1,6 +1,11 @@
 """OCR Invoice Durable Agent - Uses Mistral's Durable Agent feature to orchestrate invoice processing."""
 
 import asyncio
+import sys
+from pathlib import Path
+
+# Add project root to sys.path for cross-folder imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dotenv import load_dotenv
 import os
@@ -18,7 +23,7 @@ import mistralai_workflows.core.temporal.payload_codec as payload_codec  # noqa:
 import mistralai_workflows.core.temporal.payload_converter as payload_converter  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
-from worker import process_document_ocr, extract_invoice_data  # noqa: E402
+from workflows.workflow.worker import process_document_ocr, extract_invoice_data  # noqa: E402
 
 api_key = os.environ.get("MISTRAL_API_KEY")
 
@@ -43,7 +48,7 @@ document_url = "https://kltmfijkwchheensxrkw.supabase.co/storage/v1/object/publi
 class OCRDurableAgent:
     @workflows.workflow.entrypoint
     async def entrypoint(self, document_url: str) -> dict:
-        session = workflows_mistralai.RemoteSession()
+        session = workflows_mistralai.RemoteSession(raise_on_tool_fail=False)
 
         agent = workflows_mistralai.Agent(
             model="mistral-medium-latest",

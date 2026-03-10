@@ -2,10 +2,16 @@
 import asyncio
 import json
 import os
+import sys
+from pathlib import Path
+
+# Add project root to sys.path for cross-folder imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from dotenv import load_dotenv
 from mistralai_workflows import execute_workflow  # Use execute_workflow instead of WorkflowsClient
 from pydantic import BaseModel
-from worker import OCRDocumentWorkflow
+from workflows.workflow.worker import OCRDocumentWorkflow
 
 load_dotenv()
 

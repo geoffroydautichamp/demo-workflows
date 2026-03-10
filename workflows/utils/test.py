@@ -1,5 +1,11 @@
 import asyncio
-from worker import download_pdf, process_document_ocr, extract_invoice_data, DocumentInput
+import sys
+from pathlib import Path
+
+# Add project root to sys.path for cross-folder imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from workflows.workflow.worker import download_pdf, process_document_ocr, extract_invoice_data, DocumentInput
 
 document_url = "https://kltmfijkwchheensxrkw.supabase.co/storage/v1/object/public/github/facture_stylo.pdf"
 

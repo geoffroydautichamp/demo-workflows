@@ -25,6 +25,7 @@ import mistralai_workflows.core.temporal.payload_converter as payload_converter 
 
 server_url = os.environ.get("SERVER_URL")
 api_key = os.environ.get("MISTRAL_API_KEY")
+agent_id = os.environ.get("MISTRAL_AGENT_ID")
 
 # Encoding format compatibility patch
 NEW_ENCODING = "json/wf_v1"
@@ -151,7 +152,7 @@ async def extract_invoice_data(ocr_result: OCRResponse) -> InvoiceData:
 
     try:
         response = client.beta.conversations.start(
-            agent_id="ag_019cd2ebee8c74ae8e579c98a1dff863",
+            agent_id=agent_id,
             inputs=inputs,
         )
         print(response)
